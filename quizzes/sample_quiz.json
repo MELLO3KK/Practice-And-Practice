@@ -1,0 +1,32 @@
+{
+  "id": "sample-quiz-001",
+  "title": "Sample General Knowledge Quiz",
+  "created": "2024-01-01T00:00:00",
+  "questions": [
+    {
+      "type": "question",
+      "text": "What is the capital of France?",
+      "options": ["London", "Berlin", "Paris", "Madrid"],
+      "correctAnswerIndex": 2,
+      "media": null
+    },
+    {
+      "type": "group-divider",
+      "label": "Science Questions"
+    },
+    {
+      "type": "question",
+      "text": "What is H2O commonly known as?",
+      "options": ["Salt", "Water", "Sugar", "Oil"],
+      "correctAnswerIndex": 1,
+      "media": null
+    },
+    {
+      "type": "question",
+      "text": "Which planet is known as the Red Planet?",
+      "options": ["Venus", "Jupiter", "Mars", "Saturn"],
+      "correctAnswerIndex": 2,
+      "media": null
+    }
+  ]
+}

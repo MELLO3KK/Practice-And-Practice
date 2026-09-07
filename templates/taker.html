@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Take Quiz - Quiz Master</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="light-mode">
+    <div class="app-container taker-container">
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen start-screen">
+            <header class="app-header">
+                <a href="/" class="back-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    Back
+                </a>
+                <h1 class="app-title">Take a Quiz</h1>
+                <button id="theme-toggle" class="icon-btn" title="Toggle theme">
+                    <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+            </header>
+
+            <main class="start-main">
+                <div class="quiz-select-section">
+                    <h2>Select a Quiz</h2>
+                    <div id="saved-quizzes-list" class="quizzes-list">
+                        <!-- Saved quizzes will be loaded here -->
+                    </div>
+                    <div class="or-divider">
+                        <span>OR</span>
+                    </div>
+                    <button id="upload-quiz-btn" class="upload-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        Upload Quiz File
+                    </button>
+                    <input type="file" id="quiz-file-input" accept=".json" style="display: none;">
+                </div>
+            </main>
+        </div>
+
+        <!-- Quiz Screen -->
+        <div id="quiz-screen" class="screen quiz-screen hidden">
+            <header class="quiz-header">
+                <div class="quiz-info">
+                    <h2 id="quiz-title-display" class="quiz-title-display">Quiz Title</h2>
+                    <div class="quiz-progress">
+                        <div class="progress-bar">
+                            <div id="progress-fill" class="progress-fill"></div>
+                        </div>
+                        <span id="progress-text" class="progress-text">1 / 10</span>
+                    </div>
+                </div>
+                <div class="quiz-timer" id="timer-container">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span id="timer-display" class="timer-display">30</span>
+                </div>
+                <button id="exit-quiz-btn" class="icon-btn danger" title="Exit quiz">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </header>
+
+            <main class="quiz-main">
+                <div id="group-divider" class="group-divider hidden"></div>
+                
+                <div class="question-container">
+                    <div id="question-media" class="question-media hidden"></div>
+                    <h3 id="question-text" class="question-text"></h3>
+                    
+                    <div id="options-container" class="options-container">
+                        <!-- Options will be rendered here -->
+                    </div>
+                </div>
+
+                <div class="quiz-controls">
+                    <button id="check-answer-btn" class="primary-btn large">Check Answer</button>
+                    <button id="continue-btn" class="primary-btn large hidden">Continue</button>
+                </div>
+
+                <div id="feedback-message" class="feedback-message hidden"></div>
+            </main>
+        </div>
+
+        <!-- Result Screen -->
+        <div id="result-screen" class="screen result-screen hidden">
+            <header class="app-header">
+                <h1 class="app-title">Quiz Complete!</h1>
+                <button id="theme-toggle-result" class="icon-btn" title="Toggle theme">
+                    <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+            </header>
+
+            <main class="result-main">
+                <div class="score-display">
+                    <div id="score-circle" class="score-circle">
+                        <svg viewBox="0 0 36 36" class="circular-chart">
+                            <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                            <path id="score-path" class="circle" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                        </svg>
+                        <span id="score-percent" class="score-percent">0%</span>
+                    </div>
+                    <p id="score-text" class="score-text">You got 0 out of 0 correct</p>
+                </div>
+
+                <div id="wrong-answers-section" class="wrong-answers-section hidden">
+                    <h3>Review Wrong Answers</h3>
+                    <div id="wrong-answers-list" class="wrong-answers-list">
+                        <!-- Wrong answers will be listed here -->
+                    </div>
+                </div>
+
+                <div class="result-actions">
+                    <button id="retry-wrong-btn" class="secondary-btn">Retry Wrong Answers</button>
+                    <button id="restart-quiz-btn" class="primary-btn">Restart Quiz</button>
+                    <button id="return-home-btn" class="ghost-btn">Return to Home</button>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Confetti canvas -->
+    <canvas id="confetti-canvas" class="hidden"></canvas>
+
+    <script src="{{ url_for('static', filename='js/taker.js') }}"></script>
+</body>
+</html>

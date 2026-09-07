@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Quiz - Quiz Master</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <a href="{{ url_for('home') }}" class="logo">📝 Quiz Master</a>
+            <nav class="nav-buttons">
+                <button class="btn btn-secondary" onclick="toggleTheme()" id="themeBtn">🌙</button>
+                <a href="{{ url_for('settings') }}" class="btn btn-secondary">⚙️ Settings</a>
+            </nav>
+        </header>
+
+        <main>
+            <div class="card">
+                <h2 class="card-title">Create New Quiz</h2>
+                
+                <div class="form-group">
+                    <label class="form-label" for="quizTitle">Quiz Title</label>
+                    <input type="text" id="quizTitle" class="form-input" placeholder="Enter quiz title...">
+                </div>
+
+                <div id="questionsContainer"></div>
+
+                <div class="flex gap-10 mt-20">
+                    <button class="btn btn-primary" onclick="addQuestion()">➕ Add Question</button>
+                    <button class="btn btn-secondary" onclick="addGroupDivider()">📁 Add Group Divider</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Save Quiz</h3>
+                <div class="flex gap-10">
+                    <button class="btn btn-success" onclick="saveQuiz()">💾 Save to Server</button>
+                    <button class="btn btn-secondary" onclick="downloadQuiz()">📥 Download JSON</button>
+                    <button class="btn btn-secondary" onclick="loadQuizFromFile()">📂 Load JSON</button>
+                    <input type="file" id="quizFileInput" accept=".json" style="display:none" onchange="handleFileLoad(event)">
+                </div>
+            </div>
+
+            <div class="flex justify-between mt-20">
+                <a href="{{ url_for('home') }}" class="btn btn-secondary">← Back to Home</a>
+                <span id="saveStatus" style="color: var(--text-secondary)"></span>
+            </div>
+        </main>
+    </div>
+
+    <!-- Question Template -->
+    <template id="questionTemplate">
+        <div class="question-card draggable" draggable="true">
+            <div class="question-header">
+                <span class="question-number">Question <span class="qNum"></span></span>
+                <div class="question-actions">
+                    <button class="btn btn-icon btn-secondary" onclick="addMedia(this)" title="Add Media">📎</button>
+                    <button class="btn btn-icon btn-danger" onclick="deleteQuestion(this)" title="Delete">🗑️</button>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Question Text (Markdown supported)</label>
+                <textarea class="form-input question-text" rows="3" placeholder="Enter your question..."></textarea>
+            </div>
+
+            <div class="media-container"></div>
+
+            <div class="form-group">
+                <label class="form-label">Options (minimum 2)</label>
+                <div class="options-container"></div>
+                <button class="btn btn-secondary btn-sm mt-10" onclick="addOption(this)">+ Add Option</button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Group Divider Template -->
+    <template id="groupDividerTemplate">
+        <div class="group-divider draggable" draggable="true">
+            <span>📁</span>
+            <input type="text" class="group-divider-input" placeholder="Group Name" value="New Group">
+            <button class="btn btn-icon btn-danger" onclick="deleteElement(this)" title="Delete">🗑️</button>
+        </div>
+    </template>
+
+    <!-- Media Upload Modal -->
+    <div id="mediaModal" class="modal-overlay hidden">
+        <div class="modal">
+            <h3 class="modal-title">Add Media</h3>
+            <div class="form-group">
+                <label class="form-label">Select File</label>
+                <input type="file" id="mediaFile" class="form-input" accept="image/*,audio/*,video/*">
+            </div>
+            <div id="mediaPreview" class="media-preview hidden"></div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeMediaModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="uploadMedia()">Upload</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/creator.js') }}"></script>
+</body>
+</html>

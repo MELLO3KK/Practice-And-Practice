@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Quiz Master</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <a href="{{ url_for('home') }}" class="logo">📝 Quiz Master</a>
+            <nav class="nav-buttons">
+                <button class="btn btn-secondary" onclick="toggleTheme()" id="themeBtn">🌙</button>
+            </nav>
+        </header>
+
+        <main class="settings-container">
+            <div class="card">
+                <h2 class="card-title">⚙️ Settings</h2>
+
+                <div class="setting-item">
+                    <span class="setting-label">🔊 Sound Effects</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="soundEnabled" checked onchange="saveSettings()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-item">
+                    <span class="setting-label">⏱️ Timer Mode</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="timerEnabled" onchange="saveSettings()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-item">
+                    <span class="setting-label">🔀 Shuffle Questions</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="shuffleEnabled" onchange="saveSettings()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-item">
+                    <span class="setting-label">⌨️ Keyboard Shortcuts</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="keyboardEnabled" checked onchange="saveSettings()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-item">
+                    <span class="setting-label">🔄 Reattempt Wrong Answers</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="reattemptEnabled" onchange="saveSettings()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-item">
+                    <span class="setting-label">📁 Grouped Quiz Mode</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="groupedEnabled" onchange="saveSettings()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-item" style="flex-direction: column; align-items: flex-start;">
+                    <span class="setting-label" style="margin-bottom: 10px;">⏰ Time Per Question</span>
+                    <select id="timePerQuestion" class="form-input" style="width: auto;" onchange="saveSettings()">
+                        <option value="15">15 seconds</option>
+                        <option value="30" selected>30 seconds</option>
+                        <option value="60">60 seconds</option>
+                        <option value="90">90 seconds</option>
+                    </select>
+                </div>
+
+                <div class="setting-item">
+                    <span class="setting-label">🌓 Dark Mode</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="darkModeToggle" onchange="toggleTheme()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex justify-between mt-20">
+                <a href="{{ url_for('home') }}" class="btn btn-secondary">← Back to Home</a>
+                <button class="btn btn-primary" onclick="resetSettings()">🔄 Reset to Defaults</button>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // Load settings on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSettings();
+        });
+
+        function loadSettings() {
+            const settings = JSON.parse(localStorage.getItem('quizSettings') || '{}');
+            
+            document.getElementById('soundEnabled').checked = settings.soundEnabled !== false;
+            document.getElementById('timerEnabled').checked = settings.timerEnabled || false;
+            document.getElementById('shuffleEnabled').checked = settings.shuffleEnabled || false;
+            document.getElementById('keyboardEnabled').checked = settings.keyboardEnabled !== false;
+            document.getElementById('reattemptEnabled').checked = settings.reattemptEnabled || false;
+            document.getElementById('groupedEnabled').checked = settings.groupedEnabled || false;
+            document.getElementById('timePerQuestion').value = settings.timePerQuestion || '30';
+            
+            // Update dark mode toggle based on current theme
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            document.getElementById('darkModeToggle').checked = isDark;
+        }
+
+        function saveSettings() {
+            const settings = {
+                soundEnabled: document.getElementById('soundEnabled').checked,
+                timerEnabled: document.getElementById('timerEnabled').checked,
+                shuffleEnabled: document.getElementById('shuffleEnabled').checked,
+                keyboardEnabled: document.getElementById('keyboardEnabled').checked,
+                reattemptEnabled: document.getElementById('reattemptEnabled').checked,
+                groupedEnabled: document.getElementById('groupedEnabled').checked,
+                timePerQuestion: document.getElementById('timePerQuestion').value
+            };
+            
+            localStorage.setItem('quizSettings', JSON.stringify(settings));
+        }
+
+        function resetSettings() {
+            if (confirm('Reset all settings to defaults?')) {
+                localStorage.removeItem('quizSettings');
+                loadSettings();
+            }
+        }
+    </script>
+</body>
+</html>

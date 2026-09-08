@@ -1,0 +1,16 @@
+{
+  "name": "quiz-master",
+  "version": "2.0.0",
+  "description": "Create, edit, and take quizzes with a beautiful desktop experience",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --enable-logging"
+  },
+  "keywords": ["quiz", "electron", "desktop", "education"],
+  "author": "Quiz Master Team",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0"
+  }
+}

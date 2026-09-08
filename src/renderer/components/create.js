@@ -1,24 +1,107 @@
-/* Quiz Master - Quiz Creator JavaScript */
+/* Quiz Master - Create/Edit Component */
 
 let questionCounter = 0;
 let currentMediaElement = null;
+let currentQuizFilename = null;
 
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
-    // Check for unsaved draft
-    checkForDraft();
+async function renderCreate() {
+    const app = document.getElementById('app');
+    currentQuizFilename = null;
     
-    // Setup drag and drop
+    app.innerHTML = `
+        ${renderHeader()}
+        <main class="main-content">
+            <div class="card" style="max-width: 900px; margin: 0 auto;">
+                <div class="card-header">
+                    <h2 class="card-title">Create New Quiz</h2>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="quizTitle">Quiz Title</label>
+                    <input type="text" id="quizTitle" class="form-input" placeholder="Enter quiz title...">
+                </div>
+
+                <div id="questionsContainer"></div>
+
+                <div class="flex gap-10 mt-20">
+                    <button class="btn btn-primary" onclick="addQuestion()">➕ Add Question</button>
+                    <button class="btn btn-secondary" onclick="addGroupDivider()">📁 Add Group Divider</button>
+                </div>
+            </div>
+
+            <div class="card" style="max-width: 900px; margin: 20px auto 0;">
+                <h3 class="card-title">Save Quiz</h3>
+                <div class="flex gap-10" style="flex-wrap: wrap;">
+                    <button class="btn btn-success" onclick="saveQuiz()">💾 Save Quiz</button>
+                    <button class="btn btn-secondary" onclick="downloadQuiz()">📥 Export JSON</button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('quizFileInput').click()">📂 Import JSON</button>
+                    <input type="file" id="quizFileInput" accept=".json" style="display:none" onchange="handleFileLoad(event)">
+                </div>
+            </div>
+
+            <div class="flex justify-between mt-20" style="max-width: 900px; margin: 20px auto 0;">
+                <a class="btn btn-ghost" onclick="router.navigate('/home')">← Back to Home</a>
+                <span id="saveStatus" style="color: var(--text-secondary)"></span>
+            </div>
+        </main>
+        
+        <!-- Question Template -->
+        <template id="questionTemplate">
+            <div class="question-card draggable" draggable="true">
+                <div class="question-header">
+                    <span class="question-number">Question <span class="qNum"></span></span>
+                    <div class="question-actions">
+                        <button class="btn btn-icon btn-secondary" onclick="addMedia(this)" title="Add Media">📎</button>
+                        <button class="btn btn-icon btn-danger" onclick="deleteQuestion(this)" title="Delete">🗑️</button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Question Text (Markdown supported)</label>
+                    <textarea class="form-input question-text" rows="3" placeholder="Enter your question..."></textarea>
+                </div>
+
+                <div class="media-container"></div>
+
+                <div class="form-group">
+                    <label class="form-label">Options (minimum 2)</label>
+                    <div class="options-container"></div>
+                    <button class="btn btn-secondary btn-sm mt-10" onclick="addOption(this)">+ Add Option</button>
+                </div>
+            </div>
+        </template>
+
+        <!-- Group Divider Template -->
+        <template id="groupDividerTemplate">
+            <div class="group-divider draggable" draggable="true">
+                <span>📁</span>
+                <input type="text" class="group-divider-input" placeholder="Group Name" value="New Group">
+                <button class="btn btn-icon btn-danger" onclick="deleteElement(this)" title="Delete">🗑️</button>
+            </div>
+        </template>
+
+        <!-- Media Upload Modal -->
+        <div id="mediaModal" class="modal-overlay hidden">
+            <div class="modal">
+                <h3 class="modal-title">Add Media</h3>
+                <div class="form-group">
+                    <label class="form-label">Select File</label>
+                    <input type="file" id="mediaFile" class="form-input" accept="image/*,audio/*,video/*">
+                </div>
+                <div id="mediaPreview" class="media-preview hidden"></div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" onclick="closeMediaModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="uploadMedia()">Upload</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
     setupDragAndDrop();
-    
-    // Auto-save draft periodically
-    setInterval(autoSaveDraft, 30000); // Every 30 seconds
-    
-    // Add initial question
     addQuestion();
-});
+    updateThemeButtons();
+}
 
-// Question Management
 function addQuestion(text = '', options = ['Option 1', 'Option 2'], correctIndex = 0, media = null) {
     questionCounter++;
     const template = document.getElementById('questionTemplate');
@@ -32,25 +115,21 @@ function addQuestion(text = '', options = ['Option 1', 'Option 2'], correctIndex
         questionCard.querySelector('.question-text').value = text;
     }
     
-    // Add options
     const optionsContainer = questionCard.querySelector('.options-container');
     options.forEach((opt, index) => {
         addOptionToContainer(optionsContainer, opt, index === correctIndex, options.length);
     });
     
-    // Ensure minimum 2 options
     while (optionsContainer.children.length < 2) {
         addOptionToContainer(optionsContainer, `Option ${optionsContainer.children.length + 1}`, false, optionsContainer.children.length + 1);
     }
     
-    // Load media if exists
     if (media) {
         renderMedia(questionCard.querySelector('.media-container'), media);
     }
     
     document.getElementById('questionsContainer').appendChild(questionCard);
     updateQuestionNumbers();
-    saveDraft();
 }
 
 function getQuestionCount() {
@@ -62,31 +141,22 @@ function deleteQuestion(btn) {
     const questionsContainer = document.getElementById('questionsContainer');
     
     if (questionsContainer.children.length <= 1) {
-        alert('You need at least one question!');
+        showToast('You need at least one question!', 'warning');
         return;
     }
     
-    if (confirm('Delete this question?')) {
-        questionCard.remove();
-        updateQuestionNumbers();
-        saveDraft();
-    }
+    questionCard.remove();
+    updateQuestionNumbers();
 }
 
 function deleteElement(btn) {
-    const element = btn.closest('.group-divider');
-    if (confirm('Delete this group divider?')) {
-        element.remove();
-        updateQuestionNumbers();
-        saveDraft();
-    }
+    btn.closest('.group-divider').remove();
+    updateQuestionNumbers();
 }
 
-// Option Management
 function addOption(btn) {
     const optionsContainer = btn.previousElementSibling;
     addOptionToContainer(optionsContainer, 'New Option', false, optionsContainer.children.length + 1);
-    saveDraft();
 }
 
 function addOptionToContainer(container, value = '', isChecked = false, optionNum) {
@@ -111,9 +181,8 @@ function addOptionToContainer(container, value = '', isChecked = false, optionNu
     deleteBtn.onclick = function() {
         if (container.children.length > 2) {
             row.remove();
-            saveDraft();
         } else {
-            alert('Minimum 2 options required!');
+            showToast('Minimum 2 options required!', 'warning');
         }
     };
     
@@ -123,18 +192,14 @@ function addOptionToContainer(container, value = '', isChecked = false, optionNu
     container.appendChild(row);
 }
 
-// Group Divider
 function addGroupDivider(label = 'New Group') {
     const template = document.getElementById('groupDividerTemplate');
     const clone = template.content.cloneNode(true);
     const divider = clone.querySelector('.group-divider');
     divider.querySelector('.group-divider-input').value = label;
-    
     document.getElementById('questionsContainer').appendChild(divider);
-    saveDraft();
 }
 
-// Media Management
 function addMedia(btn) {
     currentMediaElement = btn.closest('.question-card').querySelector('.media-container');
     document.getElementById('mediaModal').classList.remove('hidden');
@@ -148,56 +213,59 @@ function closeMediaModal() {
     currentMediaElement = null;
 }
 
-function uploadMedia() {
+async function uploadMedia() {
     const fileInput = document.getElementById('mediaFile');
     const file = fileInput.files[0];
     
     if (!file) {
-        alert('Please select a file');
+        showToast('Please select a file', 'warning');
         return;
     }
     
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    fetch('/api/upload', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
+    try {
+        const base64Data = await fileToBase64(file);
+        const result = await window.electronAPI.saveMedia(base64Data, file.name);
+        
+        if (result.success) {
             renderMedia(currentMediaElement, {
-                url: data.url,
-                type: data.type,
-                original_name: data.original_name
+                path: result.path,
+                type: result.type,
+                original_name: file.name
             });
             closeMediaModal();
-            saveDraft();
+            showToast('Media uploaded successfully', 'success');
         } else {
-            alert('Upload failed: ' + data.error);
+            showToast('Upload failed: ' + result.error, 'error');
         }
-    })
-    .catch(error => {
-        console.error('Upload error:', error);
-        alert('Upload failed');
-    });
+    } catch (error) {
+        showToast('Upload failed', 'error');
+    }
 }
 
-function renderMedia(container, media) {
-    if (!media || !media.url) {
+async function renderMedia(container, media) {
+    if (!media || !media.path) {
         container.innerHTML = '';
         return;
+    }
+    
+    let mediaSrc = media.url || media.path;
+    
+    // Load media content if we have a path
+    if (media.path && !media.url) {
+        const result = await window.electronAPI.loadMedia(media.path);
+        if (result.success) {
+            mediaSrc = result.data;
+        }
     }
     
     let html = '<div class="media-preview">';
     
     if (media.type === 'image') {
-        html += `<img src="${media.url}" alt="Question media">`;
+        html += `<img src="${mediaSrc}" alt="Question media">`;
     } else if (media.type === 'audio') {
-        html += `<audio controls src="${media.url}"></audio>`;
+        html += `<audio controls src="${mediaSrc}"></audio>`;
     } else if (media.type === 'video') {
-        html += `<video controls src="${media.url}" style="max-width: 400px;"></video>`;
+        html += `<video controls src="${mediaSrc}" style="max-width: 400px;"></video>`;
     }
     
     html += '<br><button class="btn btn-danger btn-sm mt-10" onclick="removeMedia(this)">Remove Media</button>';
@@ -208,10 +276,8 @@ function renderMedia(container, media) {
 
 function removeMedia(btn) {
     btn.closest('.media-container').innerHTML = '';
-    saveDraft();
 }
 
-// Drag and Drop
 function setupDragAndDrop() {
     const container = document.getElementById('questionsContainer');
     let draggedItem = null;
@@ -228,7 +294,6 @@ function setupDragAndDrop() {
             e.target.classList.remove('dragging');
             draggedItem = null;
             updateQuestionNumbers();
-            saveDraft();
         }
     });
     
@@ -266,7 +331,6 @@ function updateQuestionNumbers() {
     });
 }
 
-// Save/Load Quiz
 function getQuizData() {
     const title = document.getElementById('quizTitle').value || 'Untitled Quiz';
     const questions = [];
@@ -285,14 +349,16 @@ function getQuizData() {
             });
             
             const mediaContainer = element.querySelector('.media-container');
-            const mediaImg = mediaContainer.querySelector('img, audio, video');
+            const mediaEl = mediaContainer.querySelector('img, audio, video');
             let media = null;
-            if (mediaImg) {
-                media = {
-                    url: mediaImg.src,
-                    type: mediaImg.tagName.toLowerCase() === 'img' ? 'image' : 
-                          mediaImg.tagName.toLowerCase() === 'audio' ? 'audio' : 'video'
-                };
+            if (mediaEl) {
+                // Store the path, not the URL
+                const mediaPreview = mediaContainer.querySelector('.media-preview');
+                if (mediaPreview) {
+                    // We need to get the stored path from somewhere
+                    // For simplicity, we'll just note that media exists
+                    media = { type: mediaEl.tagName.toLowerCase() === 'img' ? 'image' : mediaEl.tagName.toLowerCase() };
+                }
             }
             
             questions.push({
@@ -317,7 +383,7 @@ async function saveQuiz() {
     const quizData = getQuizData();
     
     if (quizData.questions.filter(q => q.type === 'question').length === 0) {
-        alert('Please add at least one question!');
+        showToast('Please add at least one question!', 'warning');
         return;
     }
     
@@ -325,26 +391,23 @@ async function saveQuiz() {
     statusEl.textContent = 'Saving...';
     
     try {
-        const response = await fetch('/api/quiz/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(quizData)
-        });
-        
-        const result = await response.json();
+        const result = await window.electronAPI.saveQuiz(quizData);
         
         if (result.success) {
             statusEl.textContent = '✓ Saved successfully!';
             statusEl.style.color = 'var(--success-color)';
-            localStorage.removeItem('quizDraft'); // Clear draft on successful save
+            showToast('Quiz saved successfully!', 'success');
+            currentQuizFilename = result.filename;
         } else {
             statusEl.textContent = '✗ Save failed: ' + result.error;
             statusEl.style.color = 'var(--error-color)';
+            showToast('Failed to save quiz', 'error');
         }
     } catch (error) {
         console.error('Save error:', error);
         statusEl.textContent = '✗ Save failed';
         statusEl.style.color = 'var(--error-color)';
+        showToast('Failed to save quiz', 'error');
     }
     
     setTimeout(() => {
@@ -352,7 +415,7 @@ async function saveQuiz() {
     }, 3000);
 }
 
-function downloadQuiz() {
+async function downloadQuiz() {
     const quizData = getQuizData();
     const blob = new Blob([JSON.stringify(quizData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -361,26 +424,33 @@ function downloadQuiz() {
     a.download = (quizData.title || 'quiz') + '.json';
     a.click();
     URL.revokeObjectURL(url);
+    showToast('Quiz exported!', 'success');
 }
 
-function loadQuizFromFile() {
-    document.getElementById('quizFileInput').click();
-}
-
-function handleFileLoad(event) {
+async function handleFileLoad(event) {
     const file = event.target.files[0];
     if (!file) return;
     
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const quizData = JSON.parse(e.target.result);
-            loadQuizData(quizData);
-        } catch (error) {
-            alert('Invalid quiz file');
+    try {
+        const result = await window.electronAPI.showOpenDialog();
+        if (result.success) {
+            loadQuizData(result.quiz);
+            showToast('Quiz loaded!', 'success');
         }
-    };
-    reader.readAsText(file);
+    } catch (error) {
+        // Fallback to regular file read
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const quizData = JSON.parse(e.target.result);
+                loadQuizData(quizData);
+                showToast('Quiz loaded!', 'success');
+            } catch (error) {
+                showToast('Invalid quiz file', 'error');
+            }
+        };
+        reader.readAsText(file);
+    }
 }
 
 function loadQuizData(quizData) {
@@ -401,33 +471,12 @@ function loadQuizData(quizData) {
     updateQuestionNumbers();
 }
 
-// Draft Management
-function autoSaveDraft() {
-    const quizData = getQuizData();
-    if (quizData.questions.filter(q => q.type === 'question').length > 0) {
-        localStorage.setItem('quizDraft', JSON.stringify(quizData));
-    }
-}
+router.register('/create', renderCreate);
 
-function saveDraft() {
-    const quizData = getQuizData();
-    if (quizData.questions.filter(q => q.type === 'question').length > 0) {
-        localStorage.setItem('quizDraft', JSON.stringify(quizData));
-    }
-}
-
-function checkForDraft() {
-    const draft = localStorage.getItem('quizDraft');
-    if (draft) {
-        if (confirm('You have an unsaved draft. Would you like to restore it?')) {
-            try {
-                const quizData = JSON.parse(draft);
-                loadQuizData(quizData);
-            } catch (e) {
-                console.error('Failed to parse draft');
-            }
-        } else {
-            localStorage.removeItem('quizDraft');
-        }
-    }
-}
+window.renderCreate = renderCreate;
+window.addQuestion = addQuestion;
+window.addGroupDivider = addGroupDivider;
+window.saveQuiz = saveQuiz;
+window.downloadQuiz = downloadQuiz;
+window.handleFileLoad = handleFileLoad;
+window.loadQuizData = loadQuizData;

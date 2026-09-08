@@ -2,6 +2,7 @@
 
 let questionCounter = 0;
 let currentMediaElement = null;
+const STORAGE_KEY = 'quizMaster_savedQuizzes';
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -17,6 +18,69 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add initial question
     addQuestion();
 });
+
+/**
+ * Get all saved quizzes from localStorage
+ */
+function getSavedQuizzes() {
+    try {
+        const data = localStorage.getItem(STORAGE_KEY);
+        return data ? JSON.parse(data) : [];
+    } catch (e) {
+        console.error('Error reading saved quizzes:', e);
+        return [];
+    }
+}
+
+/**
+ * Save quizzes array to localStorage
+ */
+function saveQuizzesToStorage(quizzes) {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(quizzes));
+        return true;
+    } catch (e) {
+        console.error('Error saving quizzes:', e);
+        alert('Storage full! Please delete some quizzes or export them.');
+        return false;
+    }
+}
+
+/**
+ * Load quiz list in edit.html
+ */
+function loadQuizList() {
+    const quizzes = getSavedQuizzes();
+    const container = document.getElementById('quizListContainer');
+    
+    if (!container) return;
+    
+    if (quizzes.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">No saved quizzes found. Create one first!</p>';
+        return;
+    }
+    
+    let html = '<ul class="quiz-list">';
+    quizzes.forEach((quiz, index) => {
+        const questionCount = quiz.questions ? quiz.questions.filter(q => q.type === 'question').length : 0;
+        const savedAt = quiz.savedAt ? new Date(quiz.savedAt).toLocaleString() : 'Unknown';
+        html += `
+            <li class="quiz-item">
+                <div class="quiz-info">
+                    <div class="quiz-title">${escapeHtml(quiz.title)}</div>
+                    <div class="quiz-meta">${questionCount} questions • Saved ${savedAt}</div>
+                </div>
+                <div class="quiz-actions">
+                    <button class="btn btn-primary" onclick="loadQuizForEdit(${index})">✏️ Edit</button>
+                    <button class="btn btn-secondary" onclick="downloadQuizData(${index})">📥 Download</button>
+                    <button class="btn btn-danger" onclick="deleteQuizByIndex(${index})">🗑️ Delete</button>
+                </div>
+            </li>
+        `;
+    });
+    html += '</ul>';
+    container.innerHTML = html;
+}
 
 // Question Management
 function addQuestion(text = '', options = ['Option 1', 'Option 2'], correctIndex = 0, media = null) {
@@ -321,24 +385,44 @@ async function saveQuiz() {
         return;
     }
     
+    // Add metadata
+    quizData.savedAt = new Date().toISOString();
+    
     const statusEl = document.getElementById('saveStatus');
     statusEl.textContent = 'Saving...';
     
     try {
-        const response = await fetch('/api/quiz/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(quizData)
-        });
+        // Get existing quizzes
+        const quizzes = getSavedQuizzes();
         
-        const result = await response.json();
+        // Check if we're updating an existing quiz
+        const existingIndex = window.currentQuizIndex !== undefined ? window.currentQuizIndex : -1;
         
-        if (result.success) {
-            statusEl.textContent = '✓ Saved successfully!';
+        if (existingIndex >= 0 && quizzes[existingIndex]) {
+            // Update existing quiz
+            quizzes[existingIndex] = quizData;
+            statusEl.textContent = '✓ Quiz updated!';
+        } else {
+            // Add as new quiz
+            quizzes.push(quizData);
+            statusEl.textContent = '✓ Quiz saved!';
+        }
+        
+        if (saveQuizzesToStorage(quizzes)) {
             statusEl.style.color = 'var(--success-color)';
             localStorage.removeItem('quizDraft'); // Clear draft on successful save
+            
+            // If in edit mode, reload the list
+            if (document.getElementById('quizListContainer')) {
+                setTimeout(() => {
+                    loadQuizList();
+                    document.getElementById('quizListContainer').classList.remove('hidden');
+                    document.getElementById('editCard').classList.add('hidden');
+                    document.getElementById('saveCard').classList.add('hidden');
+                }, 1000);
+            }
         } else {
-            statusEl.textContent = '✗ Save failed: ' + result.error;
+            statusEl.textContent = '✗ Storage full!';
             statusEl.style.color = 'var(--error-color)';
         }
     } catch (error) {
@@ -361,6 +445,23 @@ function downloadQuiz() {
     a.download = (quizData.title || 'quiz') + '.json';
     a.click();
     URL.revokeObjectURL(url);
+}
+
+/**
+ * Download a specific quiz from localStorage by index
+ */
+function downloadQuizData(index) {
+    const quizzes = getSavedQuizzes();
+    if (quizzes[index]) {
+        const quizData = quizzes[index];
+        const blob = new Blob([JSON.stringify(quizData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = (quizData.title || 'quiz') + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
 }
 
 function loadQuizFromFile() {
@@ -399,6 +500,56 @@ function loadQuizData(quizData) {
     }
     
     updateQuestionNumbers();
+}
+
+/**
+ * Load a quiz from localStorage for editing
+ */
+function loadQuizForEdit(index) {
+    const quizzes = getSavedQuizzes();
+    if (!quizzes[index]) {
+        alert('Quiz not found');
+        return;
+    }
+    
+    const quizData = quizzes[index];
+    window.currentQuizIndex = index; // Store index for updating
+    
+    // Populate the form
+    document.getElementById('quizTitle').value = quizData.title || '';
+    document.getElementById('questionsContainer').innerHTML = '';
+    questionCounter = 0;
+    
+    if (quizData.questions) {
+        quizData.questions.forEach(q => {
+            if (q.type === 'question') {
+                addQuestion(q.text, q.options || ['Option 1', 'Option 2'], q.correctAnswerIndex || 0, q.media);
+            } else if (q.type === 'group-divider') {
+                addGroupDivider(q.label || 'New Group');
+            }
+        });
+    }
+    
+    updateQuestionNumbers();
+    
+    // Show edit cards
+    document.getElementById('quizListContainer').classList.add('hidden');
+    document.getElementById('editCard').classList.remove('hidden');
+    document.getElementById('saveCard').classList.remove('hidden');
+}
+
+/**
+ * Delete a quiz from localStorage by index
+ */
+function deleteQuizByIndex(index) {
+    if (!confirm('Are you sure you want to delete this quiz?')) return;
+    
+    const quizzes = getSavedQuizzes();
+    if (quizzes[index]) {
+        quizzes.splice(index, 1);
+        saveQuizzesToStorage(quizzes);
+        loadQuizList();
+    }
 }
 
 // Draft Management

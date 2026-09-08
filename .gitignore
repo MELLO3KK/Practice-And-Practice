@@ -1,64 +1,95 @@
 ```
-# Dependencies
-__pycache__/
+# Compiled and build artifacts
 *.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
+__pycache__/
+
+# Dependencies
 .venv/
+venv/
+node_modules/
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+
+# Environment
 .env
 .env.local
-.env.*
-.venv/
-pip-log.txt
-pip-delete-this-directory.txt
+*.env.*
 
-# Build artifacts
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
+# Editors
+.vscode/
+.idea/
 
-# Testing
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Coverage reports
 .coverage
 coverage/
 htmlcov/
-.nosetests
-.unit_test.log
-.tox/
-.coverage.*
 
-# IDE and editor
-.vscode/
+# Python specific
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Distribution / packaging
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+
+# Testing
+.pytest_cache/
+.mypy_cache/
+.hypothesis/
+
+# Local configuration
+.env
+.env.local
+.env.*
+!.env.example
+
+# IDE
 .idea/
 *.swp
 *.swo
-*~
-.DS_Store
-Thumbs.db
 
 # Logs
 *.log
+!README.md
 
-# OS generated
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+# Coverage
+.coverage*
+coverage.xml
+htmlcov/
+.tox/
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+.env/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+build/
+dist/
+*.min.js
+*.min.css
 ```

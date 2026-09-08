@@ -35,11 +35,15 @@
 
             <div class="card">
                 <h3 class="card-title">Save Quiz</h3>
-                <div class="flex gap-10">
-                    <button class="btn btn-success" onclick="saveQuiz()">💾 Save to Server</button>
-                    <button class="btn btn-secondary" onclick="downloadQuiz()">📥 Download JSON</button>
-                    <button class="btn btn-secondary" onclick="loadQuizFromFile()">📂 Load JSON</button>
-                    <input type="file" id="quizFileInput" accept=".json" style="display:none" onchange="handleFileLoad(event)">
+                <div class="flex gap-10 flex-col">
+                    <div class="flex gap-10">
+                        <button class="btn btn-success" onclick="saveQuiz()">💾 Save Quiz</button>
+                        <button class="btn btn-secondary" onclick="downloadQuiz()">📥 Download JSON</button>
+                    </div>
+                    <div class="flex gap-10">
+                        <button class="btn btn-secondary" onclick="loadQuizFromFile()">📂 Load JSON File</button>
+                        <input type="file" id="quizFileInput" accept=".json" style="display:none" onchange="handleFileLoad(event)">
+                    </div>
                 </div>
             </div>
 

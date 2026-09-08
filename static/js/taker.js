@@ -10,10 +10,7 @@ let wrongQuestions = [];
 let startTime = null;
 let timerInterval = null;
 let settings = {};
-
-// Audio elements for sound effects
-const correctSound = new Audio('/static/correct.mp3');
-const wrongSound = new Audio('/static/wrong.mp3');
+const STORAGE_KEY = 'quizMaster_savedQuizzes';
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -21,39 +18,48 @@ document.addEventListener('DOMContentLoaded', function() {
     settings = getSettings();
 });
 
-// Load quiz list
-async function loadQuizList() {
+/**
+ * Get all saved quizzes from localStorage
+ */
+function getSavedQuizzes() {
     try {
-        const response = await fetch('/api/quiz/list');
-        const quizzes = await response.json();
-        const container = document.getElementById('quizListContainer');
-        
-        if (quizzes.length === 0) {
-            container.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">No saved quizzes found. Create one first!</p>';
-            return;
-        }
-        
-        let html = '<ul class="quiz-list">';
-        quizzes.forEach(quiz => {
-            html += `
-                <li class="quiz-item">
-                    <div class="quiz-info">
-                        <div class="quiz-title">${escapeHtml(quiz.title)}</div>
-                        <div class="quiz-meta">${quiz.question_count} questions</div>
-                    </div>
-                    <div class="quiz-actions">
-                        <button class="btn btn-primary" onclick="startQuizFromFile('${quiz.filename}')">▶️ Start</button>
-                    </div>
-                </li>
-            `;
-        });
-        html += '</ul>';
-        container.innerHTML = html;
-    } catch (error) {
-        console.error('Error loading quizzes:', error);
-        document.getElementById('quizListContainer').innerHTML = 
-            '<p style="color: var(--error-color); text-align: center;">Error loading quizzes</p>';
+        const data = localStorage.getItem(STORAGE_KEY);
+        return data ? JSON.parse(data) : [];
+    } catch (e) {
+        console.error('Error reading saved quizzes:', e);
+        return [];
     }
+}
+
+// Load quiz list from localStorage
+function loadQuizList() {
+    const quizzes = getSavedQuizzes();
+    const container = document.getElementById('quizListContainer');
+    
+    if (!container) return;
+    
+    if (quizzes.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">No saved quizzes found. Create one first!</p>';
+        return;
+    }
+    
+    let html = '<ul class="quiz-list">';
+    quizzes.forEach((quiz, index) => {
+        const questionCount = quiz.questions ? quiz.questions.filter(q => q.type === 'question').length : 0;
+        html += `
+            <li class="quiz-item">
+                <div class="quiz-info">
+                    <div class="quiz-title">${escapeHtml(quiz.title)}</div>
+                    <div class="quiz-meta">${questionCount} questions</div>
+                </div>
+                <div class="quiz-actions">
+                    <button class="btn btn-primary" onclick="startQuiz(${index})">▶️ Start</button>
+                </div>
+            </li>
+        `;
+    });
+    html += '</ul>';
+    container.innerHTML = html;
 }
 
 // Handle file load
@@ -65,7 +71,7 @@ function handleFileLoad(event) {
     reader.onload = function(e) {
         try {
             const quizData = JSON.parse(e.target.result);
-            startQuiz(quizData);
+            startQuiz(quizData, true); // Pass true to indicate it's from file (no index)
         } catch (error) {
             alert('Invalid quiz file');
         }
@@ -73,26 +79,26 @@ function handleFileLoad(event) {
     reader.readAsText(file);
 }
 
-// Start quiz from server file
-async function startQuizFromFile(filename) {
-    try {
-        const response = await fetch(`/api/quiz/load/${encodeURIComponent(filename)}`);
-        const quizData = await response.json();
-        
-        if (quizData.error) {
-            alert('Error loading quiz: ' + quizData.error);
+// Start quiz from localStorage by index
+function startQuiz(index, isFromFile = false) {
+    let quizData;
+    
+    if (isFromFile) {
+        // Quiz data passed directly
+        quizData = index;
+    } else {
+        // Load from localStorage
+        const quizzes = getSavedQuizzes();
+        if (!quizzes[index]) {
+            alert('Quiz not found');
             return;
         }
-        
-        startQuiz(quizData);
-    } catch (error) {
-        console.error('Error loading quiz:', error);
-        alert('Error loading quiz');
+        quizData = quizzes[index];
     }
-}
-
-// Start the quiz
-function startQuiz(quizData) {
+    
+    // Store original questions for restart functionality
+    quizData.originalQuestions = [...quizData.questions];
+    
     currentQuiz = quizData;
     
     // Filter to only questions (not group dividers)
@@ -398,8 +404,20 @@ function endQuiz() {
 function restartQuiz() {
     if (currentQuiz && currentQuiz.originalQuestions) {
         currentQuiz.questions = [...currentQuiz.originalQuestions].filter(q => q.type === 'question');
+        // Re-apply shuffle if enabled
+        if (settings.shuffleEnabled) {
+            currentQuiz.questions = shuffleArray([...currentQuiz.questions]);
+        }
     }
-    startQuiz(currentQuiz);
+    // Find the index of this quiz in saved quizzes to pass to startQuiz
+    const quizzes = getSavedQuizzes();
+    const index = quizzes.findIndex(q => q.title === currentQuiz.title && q.savedAt === currentQuiz.savedAt);
+    if (index >= 0) {
+        startQuiz(index);
+    } else {
+        // If not found (e.g., loaded from file), restart with current data
+        startQuiz(currentQuiz, true);
+    }
 }
 
 // Exit quiz
